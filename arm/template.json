@@ -1,0 +1,243 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "virtualMachines_at_terraform_test_winsvr_vm_name": {
+      "defaultValue": "at-terraform-test-winsvr-vm",
+      "type": "String"
+    },
+    "virtualMachines_at_terraform_test_winsvr_username": {
+      "defaultValue": "azureuser",
+      "type": "String"
+    },
+    "virtualMachines_at_terraform_test_winsvr_password": {
+      "type": "securestring"
+    },
+    "virtualNetworks_at_terraform_test_main_vnet_name": {
+      "defaultValue": "at-terraform-test-main-vnet",
+      "type": "String"
+    },
+    "networkSecurityGroups_at_terraform_test_main_nsg_name": {
+      "defaultValue": "at-terraform-test-main-nsg",
+      "type": "String"
+    },
+    "publicIPAddresses_at_terraform_test_win2019_vm_ip_name": {
+      "defaultValue": "at-terraform-test-win2019-vm-ip",
+      "type": "String"
+    },
+    "networkInterfaces_at_terraform_test_win2019_vm_nic_name": {
+      "defaultValue": "at-terraform-test-win2019-vm-nic",
+      "type": "String"
+    },
+    "schedules_shutdown_computevm_at_terraform_test_winsvr_vm_name": {
+      "defaultValue": "shutdown-computevm-at-terraform-test-winsvr-vm",
+      "type": "String"
+    }
+  },
+  "variables": {},
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2022-05-01",
+      "name": "[parameters('virtualNetworks_at_terraform_test_main_vnet_name')]",
+      "location": "japaneast",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_at_terraform_test_main_nsg_name'))]"
+      ],
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "172.16.0.0/20"
+          ]
+        },
+        "dhcpOptions": {
+          "dnsServers": []
+        },
+        "subnets": [
+          {
+            "name": "main-subnet",
+            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworks_at_terraform_test_main_vnet_name'), 'main-subnet')]",
+            "properties": {
+              "addressPrefix": "172.16.0.0/24",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_at_terraform_test_main_nsg_name'))]"
+              },
+              "serviceEndpoints": [],
+              "delegations": [],
+              "privateEndpointNetworkPolicies": "Enabled",
+              "privateLinkServiceNetworkPolicies": "Enabled"
+            },
+            "type": "Microsoft.Network/virtualNetworks/subnets"
+          }
+        ],
+        "virtualNetworkPeerings": [],
+        "enableDdosProtection": false
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2022-05-01",
+      "name": "[parameters('networkSecurityGroups_at_terraform_test_main_nsg_name')]",
+      "location": "japaneast",
+      "properties": {
+        "securityRules": []
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2022-08-01",
+      "name": "[parameters('virtualMachines_at_terraform_test_winsvr_vm_name')]",
+      "location": "japaneast",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaces_at_terraform_test_win2019_vm_nic_name'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_B2s"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2019-Datacenter",
+            "version": "latest"
+          },
+          "osDisk": {
+            "osType": "Windows",
+            "name": "at-terraform-test-winsvr-os-disk",
+            "createOption": "FromImage",
+            "caching": "ReadWrite",
+            "writeAcceleratorEnabled": false,
+            "managedDisk": {
+              "storageAccountType": "Standard_LRS"
+            },
+            "deleteOption": "Detach",
+            "diskSizeGB": 127
+          },
+          "dataDisks": []
+        },
+        "osProfile": {
+          "computerName": "winsvr",
+          "adminUsername": "[parameters('virtualMachines_at_terraform_test_winsvr_username')]",
+          "adminPassword": "[parameters('virtualMachines_at_terraform_test_winsvr_password')]",
+          "windowsConfiguration": {
+            "provisionVMAgent": true,
+            "enableAutomaticUpdates": true,
+            "patchSettings": {
+              "patchMode": "AutomaticByOS",
+              "assessmentMode": "ImageDefault",
+              "enableHotpatching": false
+            },
+            "winRM": {
+              "listeners": []
+            },
+            "enableVMAgentPlatformUpdates": false
+          },
+          "secrets": [],
+          "allowExtensionOperations": true
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaces_at_terraform_test_win2019_vm_nic_name'))]",
+              "properties": {
+                "primary": true
+              }
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": false
+          }
+        },
+        "priority": "Regular",
+        "extensionsTimeBudget": "PT1H30M"
+      }
+    },
+    {
+      "type": "microsoft.devtestlab/schedules",
+      "apiVersion": "2018-09-15",
+      "name": "[parameters('schedules_shutdown_computevm_at_terraform_test_winsvr_vm_name')]",
+      "location": "japaneast",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachines_at_terraform_test_winsvr_vm_name'))]"
+      ],
+      "properties": {
+        "status": "Enabled",
+        "taskType": "ComputeVmShutdownTask",
+        "dailyRecurrence": {
+          "time": "0400"
+        },
+        "timeZoneId": "Tokyo Standard Time",
+        "notificationSettings": {
+          "status": "Disabled",
+          "timeInMinutes": 30
+        },
+        "targetResourceId": "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachines_at_terraform_test_winsvr_vm_name'))]"
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2022-05-01",
+      "name": "[parameters('networkInterfaces_at_terraform_test_win2019_vm_nic_name')]",
+      "location": "japaneast",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_at_terraform_test_main_vnet_name'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddresses_at_terraform_test_win2019_vm_ip_name'))]"
+      ],
+      "kind": "Regular",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "internal",
+            "id": "[concat(resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaces_at_terraform_test_win2019_vm_nic_name')), '/ipConfigurations/internal')]",
+            "etag": "W/\"2391a46d-ac69-4b9c-b2f0-f85ef5952994\"",
+            "type": "Microsoft.Network/networkInterfaces/ipConfigurations",
+            "properties": {
+              "provisioningState": "Succeeded",
+              "privateIPAddress": "172.16.0.4",
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddresses_at_terraform_test_win2019_vm_ip_name'))]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworks_at_terraform_test_main_vnet_name'), 'main-subnet')]"
+              },
+              "primary": true,
+              "privateIPAddressVersion": "IPv4"
+            }
+          }
+        ],
+        "dnsSettings": {
+          "dnsServers": []
+        },
+        "enableAcceleratedNetworking": false,
+        "enableIPForwarding": false,
+        "disableTcpStateTracking": false,
+        "nicType": "Standard"
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2022-05-01",
+      "name": "[parameters('publicIPAddresses_at_terraform_test_win2019_vm_ip_name')]",
+      "location": "japaneast",
+      "tags": {
+        "environment": "test",
+        "project": "at-terraform"
+      },
+      "sku": {
+        "name": "Basic",
+        "tier": "Regional"
+      },
+      "properties": {
+        "ipAddress": "20.63.159.5",
+        "publicIPAddressVersion": "IPv4",
+        "publicIPAllocationMethod": "Dynamic",
+        "idleTimeoutInMinutes": 4,
+        "ipTags": []
+      }
+    }
+  ]
+}
