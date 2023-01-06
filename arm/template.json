@@ -2,43 +2,43 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "virtualMachines_name": {
-      "defaultValue": "at-terraform-test-winsvr-vm",
-      "type": "String"
+    "prj": {
+      "defaultValue": "at-arm",
+      "type": "string"
     },
-    "virtualMachines_username": {
+    "env": {
+      "defaultValue": "test",
+      "type": "string"
+    },
+    "servername": {
+      "defaultValue": "winsvr",
+      "type": "string"
+    },
+    "username": {
       "defaultValue": "azureuser",
-      "type": "String"
+      "type": "string"
     },
-    "virtualMachines_password": {
+    "password": {
       "type": "securestring"
-    },
-    "virtualNetworks_name": {
-      "defaultValue": "at-terraform-test-main-vnet",
-      "type": "String"
-    },
-    "networkSecurityGroups_name": {
-      "defaultValue": "at-terraform-test-main-nsg",
-      "type": "String"
-    },
-    "publicIPAddresses_name": {
-      "defaultValue": "at-terraform-test-win2019-vm-ip",
-      "type": "String"
-    },
-    "networkInterfaces_name": {
-      "defaultValue": "at-terraform-test-win2019-vm-nic",
-      "type": "String"
     }
   },
-  "variables": {},
+  "variables": {
+    "virtualMachines_name": "[concat(parameters('prj'),'-',parameters('env'),'-',parameters('servername'),'-vm')]",
+    "virtualMachines_username": "[parameters('username')]",
+    "virtualMachines_password": "[parameters('password')]",
+    "virtualNetworks_name": "[concat(parameters('prj'),'-',parameters('env'),'-vnet')]",
+    "networkSecurityGroups_name": "[concat(parameters('prj'),'-',parameters('env'),'-vnet-main-nsg')]",
+    "publicIPAddresses_name": "[concat(parameters('prj'),'-',parameters('env'),'-',parameters('servername'),'-ip')]",
+    "networkInterfaces_name": "[concat(parameters('prj'),'-',parameters('env'),'-',parameters('servername'),'-nic')]"
+  },
   "resources": [
     {
       "type": "Microsoft.Network/virtualNetworks",
       "apiVersion": "2022-05-01",
-      "name": "[parameters('virtualNetworks_name')]",
+      "name": "[variables('virtualNetworks_name')]",
       "location": "japaneast",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_name'))]"
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_name'))]"
       ],
       "properties": {
         "addressSpace": {
@@ -52,11 +52,11 @@
         "subnets": [
           {
             "name": "main-subnet",
-            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworks_name'), 'main-subnet')]",
+            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworks_name'), 'main-subnet')]",
             "properties": {
               "addressPrefix": "172.16.0.0/24",
               "networkSecurityGroup": {
-                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_name'))]"
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_name'))]"
               },
               "serviceEndpoints": [],
               "delegations": [],
@@ -73,7 +73,7 @@
     {
       "type": "Microsoft.Network/networkSecurityGroups",
       "apiVersion": "2022-05-01",
-      "name": "[parameters('networkSecurityGroups_name')]",
+      "name": "[variables('networkSecurityGroups_name')]",
       "location": "japaneast",
       "properties": {
         "securityRules": []
@@ -82,10 +82,10 @@
     {
       "type": "Microsoft.Compute/virtualMachines",
       "apiVersion": "2022-08-01",
-      "name": "[parameters('virtualMachines_name')]",
+      "name": "[variables('virtualMachines_name')]",
       "location": "japaneast",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaces_name'))]"
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_name'))]"
       ],
       "properties": {
         "hardwareProfile": {
@@ -114,8 +114,8 @@
         },
         "osProfile": {
           "computerName": "winsvr",
-          "adminUsername": "[parameters('virtualMachines_username')]",
-          "adminPassword": "[parameters('virtualMachines_password')]",
+          "adminUsername": "[variables('virtualMachines_username')]",
+          "adminPassword": "[variables('virtualMachines_password')]",
           "windowsConfiguration": {
             "provisionVMAgent": true,
             "enableAutomaticUpdates": true,
@@ -135,7 +135,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaces_name'))]",
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_name'))]",
               "properties": {
                 "primary": true
               }
@@ -154,10 +154,10 @@
     {
       "type": "microsoft.devtestlab/schedules",
       "apiVersion": "2018-09-15",
-      "name": "[concat('shutdown-computevm-', parameters('virtualMachines_name'))]",
+      "name": "[concat('shutdown-computevm-', variables('virtualMachines_name'))]",
       "location": "japaneast",
       "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachines_name'))]"
+        "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_name'))]"
       ],
       "properties": {
         "status": "Enabled",
@@ -170,24 +170,24 @@
           "status": "Disabled",
           "timeInMinutes": 30
         },
-        "targetResourceId": "[resourceId('Microsoft.Compute/virtualMachines', parameters('virtualMachines_name'))]"
+        "targetResourceId": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_name'))]"
       }
     },
     {
       "type": "Microsoft.Network/networkInterfaces",
       "apiVersion": "2022-05-01",
-      "name": "[parameters('networkInterfaces_name')]",
+      "name": "[variables('networkInterfaces_name')]",
       "location": "japaneast",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_name'))]",
-        "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddresses_name'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_name'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_name'))]"
       ],
       "kind": "Regular",
       "properties": {
         "ipConfigurations": [
           {
             "name": "internal",
-            "id": "[concat(resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaces_name')), '/ipConfigurations/internal')]",
+            "id": "[concat(resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_name')), '/ipConfigurations/internal')]",
             "etag": "W/\"2391a46d-ac69-4b9c-b2f0-f85ef5952994\"",
             "type": "Microsoft.Network/networkInterfaces/ipConfigurations",
             "properties": {
@@ -195,10 +195,10 @@
               "privateIPAddress": "172.16.0.4",
               "privateIPAllocationMethod": "Dynamic",
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIPAddresses_name'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_name'))]"
               },
               "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworks_name'), 'main-subnet')]"
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworks_name'), 'main-subnet')]"
               },
               "primary": true,
               "privateIPAddressVersion": "IPv4"
@@ -217,7 +217,7 @@
     {
       "type": "Microsoft.Network/publicIPAddresses",
       "apiVersion": "2022-05-01",
-      "name": "[parameters('publicIPAddresses_name')]",
+      "name": "[variables('publicIPAddresses_name')]",
       "location": "japaneast",
       "tags": {
         "environment": "test",
