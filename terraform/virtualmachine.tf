@@ -27,7 +27,7 @@ resource "azurerm_windows_virtual_machine" "win2019" {
 
 # NIC設定
 resource "azurerm_network_interface" "win2019" {
-  name                = "${var.prj}-${var.env}-win2019-vm-nic"
+  name                = "${var.prj}-${var.env}-${var.servername}-vm-nic"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -41,7 +41,7 @@ resource "azurerm_network_interface" "win2019" {
 
 # Public IP
 resource "azurerm_public_ip" "win2019" {
-  name                = "${var.prj}-${var.env}-win2019-vm-ip"
+  name                = "${var.prj}-${var.env}-${var.servername}-vm-ip"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   allocation_method   = "Dynamic"
