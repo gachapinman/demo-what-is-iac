@@ -26,6 +26,7 @@
     "virtualMachines_name": "[concat(parameters('prj'),'-',parameters('env'),'-',parameters('servername'),'-vm')]",
     "virtualMachines_username": "[parameters('username')]",
     "virtualMachines_password": "[parameters('password')]",
+    "virtualMachines_osdisk": "[concat(parameters('prj'),'-',parameters('env'),'-',parameters('servername'),'-os-disk')]",
     "virtualNetworks_name": "[concat(parameters('prj'),'-',parameters('env'),'-vnet')]",
     "networkSecurityGroups_name": "[concat(parameters('prj'),'-',parameters('env'),'-vnet-main-nsg')]",
     "publicIPAddresses_name": "[concat(parameters('prj'),'-',parameters('env'),'-',parameters('servername'),'-ip')]",
@@ -100,7 +101,7 @@
           },
           "osDisk": {
             "osType": "Windows",
-            "name": "at-terraform-test-winsvr-os-disk",
+            "name": "[variables('virtualMachines_osdisk')]",
             "createOption": "FromImage",
             "caching": "ReadWrite",
             "writeAcceleratorEnabled": false,
@@ -219,10 +220,6 @@
       "apiVersion": "2022-05-01",
       "name": "[variables('publicIPAddresses_name')]",
       "location": "japaneast",
-      "tags": {
-        "environment": "test",
-        "project": "at-terraform"
-      },
       "sku": {
         "name": "Basic",
         "tier": "Regional"
