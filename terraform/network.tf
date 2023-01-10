@@ -1,5 +1,5 @@
 resource "azurerm_virtual_network" "vnet" {
-  name                = "${var.prj}-${var.env}-main-vnet"
+  name                = "${var.prj}-${var.env}-vnet"
   address_space       = ["172.16.0.0/20"]
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -19,7 +19,7 @@ resource "azurerm_subnet_network_security_group_association" "main" {
 
 # Network Security Group
 resource "azurerm_network_security_group" "main" {
-  name                = "${var.prj}-${var.env}-main-nsg"
+  name                = "${var.prj}-${var.env}-vnet-main-nsg"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 }
