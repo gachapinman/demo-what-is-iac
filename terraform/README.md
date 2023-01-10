@@ -1,6 +1,22 @@
 # Terraform を使った IaC サンプル
 
-1. 変数ファイルの作成
+1. Azureポータルへログイン
+
+1. Cloud Shell を起動
+
+1. このリポジトリをクローン
+
+    ```
+    git clone https://github.com/akinaritsugo/demo-what-is-iac.git
+    ```
+
+1. terraform フォルダへ移動
+
+    ```
+    cd ./demo-what-is-iac/terraform
+    ```
+
+1. 変数ファイル（ `terraform.tfvars` ）の作成
 
     `terraform.tfvars` ファイルに以下の変数を定義する
 
@@ -48,4 +64,6 @@
         ```
         terraform apply
         ```
+
+1. Azureへリソースが展開されたことを確認
 
